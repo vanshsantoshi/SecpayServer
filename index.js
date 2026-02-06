@@ -51,6 +51,9 @@ app.post("/submitIntentProof", (req, res) => {
     if (!device_id || !intent_payload || !signature) {
       return res.status(400).json({ verified: false, error: "missing fields" });
     }
+    console.log("Device id: ", device_id);
+    console.log("intent payload: ", intent_payload);
+    console.log("signature: ", signature);
 
     const device = devices.get(device_id);
     if (!device) {

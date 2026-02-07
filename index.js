@@ -49,29 +49,24 @@ app.post("/submitIntentProof", (req, res) => {
     const { device_id, intent_payload, signature } = req.body;
 
     if (!device_id || !intent_payload || !signature) {
-      return res.status(400).json({ verified: false, error: "missing fields" });
+      return res.json({ verified: false });
     }
-    console.log("Device id: ", device_id);
-    console.log("intent payload: ", intent_payload);
-    console.log("signature: ", signature);
 
     const device = devices.get(device_id);
     if (!device) {
-      return res.json({ verified: false, error: "unknown device" });
+      return res.json({ verified: false });
     }
 
-    // Canonicalize payload
-    const canonical = canonicalize(intent_payload);
+    // Canonicalize payload (MUST match Android)
+    const canonicalPayload = canonicalize(intent_payload);
 
-    // Decode public key
     const publicKeyDer = Buffer.from(device.publicKeyBase64, "base64");
 
-    // Create verifier
     const verify = crypto.createVerify("SHA256");
-    verify.update(canonical);
+    verify.update(canonicalPayload);
     verify.end();
 
-    const verified = verify.verify(
+    const isValid = verify.verify(
       {
         key: publicKeyDer,
         format: "der",
@@ -80,15 +75,13 @@ app.post("/submitIntentProof", (req, res) => {
       Buffer.from(signature, "base64")
     );
 
-    console.log("Verification result:", verified);
+    return res.json({ verified: isValid });
 
-    res.json({ verified });
-
-  } catch (err) {
-    console.error(err);
-    res.json({ verified: false });
+  } catch (e) {
+    return res.json({ verified: false });
   }
 });
+
 
 app.listen(3000, () => {
   console.log("Server running on http://localhost:3000");
